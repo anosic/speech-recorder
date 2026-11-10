@@ -1,0 +1,8 @@
+{
+  "name": "speech-recorder-repo",
+  "private": true,
+  "packageManager": "yarn@4.13.0",
+  "workspaces": [
+    "apps/vscode-ext-speech"
+  ]
+}

@@ -1,0 +1,221 @@
+{
+	"name": "speech-recorder",
+	"displayName": "Anosic Speech Recorder",
+	"description": "Records your voice, transcribes it with a local AI model, and copies the text to your clipboard.",
+	"version": "0.1.0",
+	"publisher": "anosic",
+	"author": {
+		"name": "Anosic Systems"
+	},
+	"license": "MIT",
+	"icon": "media/icon.png",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/anosic/speech-recorder.git"
+	},
+	"homepage": "https://github.com/anosic/speech-recorder#readme",
+	"bugs": {
+		"url": "https://github.com/anosic/speech-recorder/issues"
+	},
+	"engines": {
+		"vscode": "^1.100.0"
+	},
+	"extensionKind": [
+		"workspace"
+	],
+	"categories": [
+		"Other"
+	],
+	"keywords": [
+		"speech",
+		"speech-to-text",
+		"transcription",
+		"dictation",
+		"microphone",
+		"clipboard"
+	],
+	"activationEvents": [
+		"onStartupFinished"
+	],
+	"main": "./out/extension.js",
+	"contributes": {
+		"views": {
+			"explorer": [
+				{
+					"type": "webview",
+					"id": "anosicSpeech.recorderView",
+					"name": "Anosic Speech Recorder"
+				}
+			]
+		},
+		"commands": [
+			{
+				"command": "anosicSpeech.toggleRecording",
+				"category": "Anosic Speech Recorder",
+				"title": "Toggle Recording",
+				"icon": "$(record)"
+			},
+			{
+				"command": "anosicSpeech.transcribeFile",
+				"category": "Anosic Speech Recorder",
+				"title": "Transcribe WAV File…",
+				"icon": "$(file-media)"
+			},
+			{
+				"command": "anosicSpeech.openSettings",
+				"category": "Anosic Speech Recorder",
+				"title": "Open Settings",
+				"icon": "$(gear)"
+			},
+			{
+				"command": "anosicSpeech.changeShortcut",
+				"category": "Anosic Speech Recorder",
+				"title": "Change Keyboard Shortcut…",
+				"icon": "$(keyboard)"
+			}
+		],
+		"menus": {
+			"view/title": [
+				{
+					"command": "anosicSpeech.transcribeFile",
+					"group": "navigation",
+					"when": "view == anosicSpeech.recorderView"
+				},
+				{
+					"command": "anosicSpeech.changeShortcut",
+					"group": "navigation",
+					"when": "view == anosicSpeech.recorderView"
+				},
+				{
+					"command": "anosicSpeech.openSettings",
+					"group": "navigation",
+					"when": "view == anosicSpeech.recorderView"
+				}
+			]
+		},
+		"configuration": {
+			"title": "Anosic Speech Recorder",
+			"properties": {
+				"anosicSpeech.model": {
+					"type": "string",
+					"default": "small",
+					"order": 1,
+					"enum": [
+						"tiny",
+						"base",
+						"small",
+						"large-v3-turbo",
+						"custom"
+					],
+					"enumItemLabels": [
+						"Tiny",
+						"Base",
+						"Small",
+						"Large v3 Turbo",
+						"Custom"
+					],
+					"enumDescriptions": [
+						"Fastest, least accurate · ~41 MB download from Hugging Face",
+						"Fast, fair accuracy · ~77 MB download from Hugging Face",
+						"Good balance of speed and accuracy · ~249 MB download from Hugging Face",
+						"Higher accuracy, slower, larger download · ~1.09 GB from Hugging Face",
+						"Use the Custom Model, Custom Dtype and Custom Revision settings below"
+					],
+					"markdownDescription": "Speech model. Downloaded once on first use and cached (see `#anosicSpeech.modelCacheDir#`). Larger models are more accurate but slower to load and transcribe."
+				},
+				"anosicSpeech.customModel": {
+					"type": "string",
+					"default": "",
+					"order": 2,
+					"markdownDescription": "Used only when `#anosicSpeech.model#` is **Custom**. Hugging Face id of an ONNX Whisper model, e.g. `Xenova/whisper-base.en` (English-only)."
+				},
+				"anosicSpeech.customDtype": {
+					"type": "string",
+					"default": "q8",
+					"order": 3,
+					"enum": [
+						"q8",
+						"int8",
+						"uint8",
+						"q4",
+						"bnb4",
+						"fp16",
+						"fp32"
+					],
+					"markdownDescription": "Used only when `#anosicSpeech.model#` is **Custom**. Weight variant to download; the model repo must publish it. `q8` (8-bit quantized) is the usual choice."
+				},
+				"anosicSpeech.customRevision": {
+					"type": "string",
+					"default": "",
+					"order": 4,
+					"markdownDescription": "Used only when `#anosicSpeech.model#` is **Custom**. Model revision (commit sha or branch) to pin. Empty uses `main`."
+				},
+				"anosicSpeech.modelCacheDir": {
+					"type": "string",
+					"default": "",
+					"description": "Directory for downloaded model files. Empty uses the extension global storage."
+				},
+				"anosicSpeech.captureBinary": {
+					"type": "string",
+					"default": "",
+					"description": "Path to the speech-capture binary. Empty uses the bundled binary, or in a source checkout the Cargo target dir (release, then debug)."
+				},
+				"anosicSpeech.inputDevice": {
+					"type": "string",
+					"default": "",
+					"description": "Input device name passed to speech-capture (`speech-capture --list-devices`). Empty uses the default."
+				},
+				"anosicSpeech.noiseSuppression": {
+					"type": "boolean",
+					"default": false,
+					"description": "Enable sonora noise suppression during capture."
+				},
+				"anosicSpeech.autoGain": {
+					"type": "boolean",
+					"default": false,
+					"description": "Enable sonora automatic gain control during capture."
+				},
+				"anosicSpeech.autoClear": {
+					"type": "boolean",
+					"default": true,
+					"markdownDescription": "Clear the transcript automatically some time after each transcription (see `#anosicSpeech.autoClearTimeoutMinutes#`), so dictated text is not left behind. Like **Clear**, it also empties the clipboard if it still holds the transcript; anything you copied since is left alone."
+				},
+				"anosicSpeech.autoClearTimeoutMinutes": {
+					"type": "integer",
+					"default": 10,
+					"minimum": 1,
+					"maximum": 1440,
+					"markdownDescription": "Minutes after a transcription finishes before it is cleared. Used only when `#anosicSpeech.autoClear#` is on."
+				},
+				"anosicSpeech.autoCopy": {
+					"type": "boolean",
+					"default": true,
+					"description": "Copy the transcript to the clipboard as soon as transcription finishes."
+				}
+			}
+		},
+		"keybindings": [
+			{
+				"command": "anosicSpeech.toggleRecording",
+				"key": "ctrl+alt+r",
+				"mac": "cmd+alt+r"
+			}
+		]
+	},
+	"scripts": {
+		"vscode:prepublish": "yarn compile",
+		"compile": "tsc -p ./",
+		"watch": "tsc -w -p ./",
+		"typecheck": "tsc -p tsconfig.json --noEmit && echo \"🟢 TYPECHECK PASSED\" || (echo \"🔴 TYPECHECK FAILED\" && exit 1)",
+		"package": "node scripts/package-vsix.mjs"
+	},
+	"devDependencies": {
+		"@types/node": "25.6.0",
+		"@types/vscode": "1.145.0",
+		"esbuild": "0.20.2",
+		"typescript": "5.4.5"
+	},
+	"dependencies": {
+		"@huggingface/transformers": "4.3.2"
+	}
+}

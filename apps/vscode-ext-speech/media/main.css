@@ -1,0 +1,27 @@
+body { background-color: transparent; }
+.controls { display: flex; gap: 0.4em; }
+#status { margin: 0.6em 0; opacity: 0.8; }
+#transcript {
+	width: 100%;
+	box-sizing: border-box;
+	resize: vertical;
+	color: var(--vscode-input-foreground);
+	background-color: var(--vscode-input-background);
+	border: 1px solid var(--vscode-input-border, transparent);
+	padding: 0.4em;
+	font-family: var(--vscode-font-family);
+	margin-bottom: 0.4em;
+}
+.secondary-row { margin-top: 0.4em; }
+/* vscode.css gives every button width: 100%, which as a flex basis lets Clear claim the whole row. Clear sizes to its
+   label (never more than half the row) and Transcribe takes the rest. */
+.secondary-row button { width: auto; min-width: 0; padding-inline: 0.8em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.secondary-row #transcribeFile { flex: 1 1 0; }
+.secondary-row #clear { flex: 0 0 auto; max-width: 50%; }
+#meter { height: 4px; background: var(--vscode-input-background); margin-bottom: 0.6em; visibility: hidden; }
+#meter.active { visibility: visible; }
+#meterBar { height: 100%; width: 0%; background: var(--vscode-charts-green, #3c3); transition: width 80ms linear; }
+#copy.copied { color: var(--vscode-charts-green, #3c3); }
+/* vscode.css has no disabled style, so disabled buttons looked clickable (Stop while idle, Record while recording). */
+button:disabled, button:disabled:hover { opacity: 0.4; cursor: default; background: var(--vscode-button-background); }
+button.secondary:disabled, button.secondary:disabled:hover { background: var(--vscode-button-secondaryBackground); }

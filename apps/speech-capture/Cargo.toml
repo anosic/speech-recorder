@@ -1,0 +1,18 @@
+# speech-capture — capture-only microphone helper for the Anosic Speech Recorder VS Code extension.
+# Writes 16 kHz mono f32le PCM to stdout and JSON-lines events to stderr; stops cleanly when stdin closes.
+[package]
+name = "speech-capture"
+authors = ["Anosic Systems"]
+edition = "2024"
+license = "MIT"
+publish = false
+version = "0.1.0"
+
+[[bin]]
+name = "speech-capture"
+path = "src/main.rs"
+
+[dependencies]
+cpal = "0.15.2"
+libc = "0.2"
+sonora = "0.2.0"
