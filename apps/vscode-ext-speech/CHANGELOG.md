@@ -3,6 +3,14 @@
 Notable changes to Anosic Speech Recorder. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.1.1] - 2026-11-18
+
+### Added
+
+- System resource health indicator on the status bar item: polls CPU load, available memory, and (on Linux) swap
+  thrashing rate every 5 seconds, tinting the status bar background amber (`degraded`) or red (`severe`) with resource
+  details in the tooltip when local transcription is likely to be slow.
+
 ## [0.1.0] - 2026-11-09
 
 First public release.

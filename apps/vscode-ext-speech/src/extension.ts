@@ -4,6 +4,7 @@ import { SttClient } from './sttClient';
 import type { SttOptions } from './stt';
 import { CaptureSession, resolveCaptureBinary } from './capture';
 import { DEFAULT_SHORTCUT, StatusIndicator, type Phase } from './statusIndicator';
+import { DEFAULT_RESOURCE_CONFIG, ResourceMonitor, type ResourceMonitorConfig } from './resourceMonitor';
 import { resolveModel } from './models';
 
 /** Recordings quieter than this (RMS) are treated as silence and not transcribed. */
@@ -30,6 +31,21 @@ export function activate(context: vscode.ExtensionContext) {
 	let startedAt = 0;
 
 	const config = () => vscode.workspace.getConfiguration('anosicSpeech');
+	const resourceConfig = (): ResourceMonitorConfig => {
+		const cfg = config();
+		const intervalSec = Math.max(1, cfg.get<number>('resourceMonitor.intervalSeconds', DEFAULT_RESOURCE_CONFIG.intervalMs / 1000));
+		return {
+			enabled: cfg.get<boolean>('resourceMonitor.enabled', DEFAULT_RESOURCE_CONFIG.enabled),
+			intervalMs: intervalSec * 1000,
+			cpuLoadDegradedRatio: cfg.get<number>('resourceMonitor.cpuLoadDegradedRatio', DEFAULT_RESOURCE_CONFIG.cpuLoadDegradedRatio),
+			cpuLoadSevereRatio: cfg.get<number>('resourceMonitor.cpuLoadSevereRatio', DEFAULT_RESOURCE_CONFIG.cpuLoadSevereRatio),
+			ramUsedDegradedPercent: cfg.get<number>('resourceMonitor.ramUsedDegradedPercent', DEFAULT_RESOURCE_CONFIG.ramUsedDegradedPercent),
+			ramUsedSeverePercent: cfg.get<number>('resourceMonitor.ramUsedSeverePercent', DEFAULT_RESOURCE_CONFIG.ramUsedSeverePercent),
+			swapDegradedMBps: cfg.get<number>('resourceMonitor.swapDegradedMBps', DEFAULT_RESOURCE_CONFIG.swapDegradedMBps),
+			swapSevereMBps: cfg.get<number>('resourceMonitor.swapSevereMBps', DEFAULT_RESOURCE_CONFIG.swapSevereMBps),
+		};
+	};
+	const monitor = new ResourceMonitor(health => indicator.setResourceHealth(health), resourceConfig());
 	const sttOptions = (): SttOptions => {
 		const cfg = config();
 		const { model, dtype, revision } = resolveModel((key, fallback) => cfg.get(key, fallback));
@@ -182,12 +198,16 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		{ dispose: () => { clearInterval(timer); cancelAutoClear(); session?.kill(); } },
 		vscode.workspace.onDidChangeConfiguration(e => {
+			if (e.affectsConfiguration('anosicSpeech.resourceMonitor')) {
+				monitor.configure(resourceConfig());
+			}
 			if (!e.affectsConfiguration('anosicSpeech.autoClear') && !e.affectsConfiguration('anosicSpeech.autoClearTimeoutMinutes')) { return; }
 			armAutoClear();
 			if (provider.state.phase === 'done' && provider.state.transcript) { provider.update({ status: doneStatus + autoClearSuffix() }); }
 		}),
 		out,
 		indicator,
+		monitor,
 		{ dispose: () => void stt.dispose() },
 		vscode.window.onDidChangeWindowState(s => { if (s.focused) { void syncCopied(); } }),
 		vscode.window.registerWebviewViewProvider(RecorderViewProvider.viewType, provider),

@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import type { ResourceHealth } from './resourceMonitor';
 
 /** The contributed default for anosicSpeech.toggleRecording. Users can rebind it, and the API cannot read the
  *  effective binding, so text that names the key says "by default". */
@@ -23,6 +24,7 @@ export class StatusIndicator implements vscode.Disposable {
 	private readonly item = vscode.window.createStatusBarItem('anosicSpeech.status', vscode.StatusBarAlignment.Right, 100);
 	private last?: IndicatorState;
 	private elapsed = 0;
+	private resourceHealth: ResourceHealth = { level: 'ok', summary: '' };
 	/** Redraws the auto-clear countdown once a second while one is pending. */
 	private countdown?: NodeJS.Timeout;
 
@@ -31,6 +33,11 @@ export class StatusIndicator implements vscode.Disposable {
 		this.item.command = 'anosicSpeech.toggleRecording';
 		this.render({ phase: 'idle', status: 'Idle', copied: false });
 		this.item.show();
+	}
+
+	setResourceHealth(health: ResourceHealth) {
+		this.resourceHealth = health;
+		if (this.last) { this.render(this.last); }
 	}
 
 	render(s: IndicatorState) {
@@ -50,7 +57,10 @@ export class StatusIndicator implements vscode.Disposable {
 			: s.phase === 'transcribing' ? 'Busy transcribing; click again when it finishes'
 				: `Click or press the Toggle Recording shortcut (${DEFAULT_SHORTCUT} by default) to start recording`;
 		const clears = pending ? `\nAuto-clear in ${pending.left} (at ${pending.at})` : '';
-		this.item.tooltip = `Anosic Speech Recorder: ${s.status}${s.copied ? ' (transcript on clipboard)' : ''}${clears}\n${action}`;
+		const resourceNote = this.resourceHealth.level === 'ok'
+			? (this.resourceHealth.summary ? `\nSystem: ${this.resourceHealth.summary}` : '')
+			: `\n⚠ System resources ${this.resourceHealth.level} (${this.resourceHealth.summary}) — transcription may be slow`;
+		this.item.tooltip = `Anosic Speech Recorder: ${s.status}${s.copied ? ' (transcript on clipboard)' : ''}${clears}${resourceNote}\n${action}`;
 	}
 
 	/** Update the recording clock without a full state change. */
@@ -60,16 +70,21 @@ export class StatusIndicator implements vscode.Disposable {
 	}
 
 	private look(s: IndicatorState): { text: string; bg?: string } {
+		const resourceBg = this.resourceHealth.level === 'severe'
+			? 'statusBarItem.errorBackground'
+			: this.resourceHealth.level === 'degraded'
+				? 'statusBarItem.warningBackground'
+				: undefined;
 		switch (s.phase) {
 			case 'recording': {
 				const t = Math.floor(this.elapsed);
 				return { text: `$(circle-filled) REC ${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`, bg: 'statusBarItem.errorBackground' };
 			}
-			case 'transcribing': return { text: `$(loading~spin) ${s.status.replace(/…$/, '')}` };
+			case 'transcribing': return { text: `$(loading~spin) ${s.status.replace(/…$/, '')}`, bg: resourceBg };
 			case 'silence': return { text: '$(warning) Silence', bg: 'statusBarItem.warningBackground' };
 			case 'error': return { text: '$(error) Speech error', bg: 'statusBarItem.errorBackground' };
-			case 'done': return { text: s.copied ? '$(mic) $(check) Copied' : '$(mic)' };
-			default: return { text: '$(mic)' };
+			case 'done': return { text: s.copied ? '$(mic) $(check) Copied' : '$(mic)', bg: resourceBg };
+			default: return { text: '$(mic)', bg: resourceBg };
 		}
 	}
 

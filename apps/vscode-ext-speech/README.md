@@ -80,6 +80,31 @@ this table combined.
 | `anosicSpeech.noiseSuppression` | `false` | Noise suppression during capture. |
 | `anosicSpeech.autoGain` | `false` | Automatic gain control during capture. |
 | `anosicSpeech.captureBinary` | *(bundled)* | Override the bundled `speech-capture` binary. |
+| `anosicSpeech.resourceMonitor.enabled` | `false` | Opt-in: tint the status bar amber/red when CPU, RAM, or swap contention may slow transcription. |
+| `anosicSpeech.resourceMonitor.intervalSeconds` | `5` | How often (in seconds) to check system resources. |
+| `anosicSpeech.resourceMonitor.cpuLoadDegradedRatio` | `0.8` | 1-minute CPU load per core for amber warning. |
+| `anosicSpeech.resourceMonitor.cpuLoadSevereRatio` | `1.1` | 1-minute CPU load per core for red warning. |
+| `anosicSpeech.resourceMonitor.ramUsedDegradedPercent` | `85` | RAM usage % for amber warning. |
+| `anosicSpeech.resourceMonitor.ramUsedSeverePercent` | `92` | RAM usage % for red warning. |
+| `anosicSpeech.resourceMonitor.swapDegradedMBps` | `1` | Swap I/O rate (MB/s, Linux) for amber warning. |
+| `anosicSpeech.resourceMonitor.swapSevereMBps` | `10` | Swap I/O rate (MB/s, Linux) for red warning. |
+
+## Troubleshooting slow transcription
+
+If transcription is normally fast and then suddenly takes 10×–15× longer (or appears stuck), the extension itself
+is usually not the culprit: Whisper runs locally on your CPU via ONNX Runtime, so if another process (a compiler,
+test suite, model checker, or browser) is saturating CPU cores or pushing memory into swap, inference gets starved
+and stalls waiting on CPU or disk paging.
+
+Because polling system stats uses a small amount of resources of its own, the built-in **resource monitor is off by
+default**. If you often run heavy workloads alongside dictation and want an at-a-glance warning before you hit
+Record, enable **`anosicSpeech.resourceMonitor.enabled`**:
+
+- **Default background**: system resources look healthy.
+- **Amber**: moderate contention (CPU load ≥ `0.8×` cores, RAM ≥ `85%`, or swap I/O ≥ `1 MB/s` over a 15s window).
+- **Red**: severe contention (CPU load ≥ `1.1×` cores, RAM ≥ `92%`, or swap I/O ≥ `10 MB/s`).
+
+Hover the status bar microphone to see the exact CPU load, RAM usage, and swap rate.
 
 ## Requirements
 
